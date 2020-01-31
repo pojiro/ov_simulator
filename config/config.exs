@@ -12,7 +12,10 @@ config :ov_simulator, OvSimulatorWeb.Endpoint,
   url: [host: "localhost"],
   secret_key_base: "B2e8J08zDvsNbbcTKPLQUlylZs3xeTzNTfGDr1nszQjilC7oRMkDA3hz2baBisnE",
   render_errors: [view: OvSimulatorWeb.ErrorView, accepts: ~w(html json)],
-  pubsub: [name: OvSimulator.PubSub, adapter: Phoenix.PubSub.PG2]
+  pubsub: [name: OvSimulator.PubSub, adapter: Phoenix.PubSub.PG2],
+  live_view: [
+    signing_salt: "u6j0rAlCgzcfShmK2WS8S7i18VNb8BlD"
+  ]
 
 # Configures Elixir's Logger
 config :logger, :console,

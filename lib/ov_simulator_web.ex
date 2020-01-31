@@ -23,6 +23,8 @@ defmodule OvSimulatorWeb do
 
       import Plug.Conn
       import OvSimulatorWeb.Gettext
+      import Phoenix.LiveView.Controller
+
       alias OvSimulatorWeb.Router.Helpers, as: Routes
     end
   end
@@ -41,6 +43,8 @@ defmodule OvSimulatorWeb do
 
       import OvSimulatorWeb.ErrorHelpers
       import OvSimulatorWeb.Gettext
+      import Phoenix.LiveView.Helpers
+
       alias OvSimulatorWeb.Router.Helpers, as: Routes
     end
   end
@@ -50,6 +54,7 @@ defmodule OvSimulatorWeb do
       use Phoenix.Router
       import Plug.Conn
       import Phoenix.Controller
+      import Phoenix.LiveView.Router
     end
   end
 
