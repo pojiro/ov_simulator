@@ -40,7 +40,9 @@ defmodule OvSimulator.MixProject do
       {:jason, "~> 1.0"},
       {:plug_cowboy, "~> 2.0"},
       {:phoenix_live_view, "~> 0.6.0"},
-      {:floki, ">= 0.0.0", only: :test}
+      {:floki, ">= 0.0.0", only: :test},
+      {:mix_test_watch, "~> 1.0", only: :dev, runtime: false},
+      {:git_hooks, "~> 0.4.0", only: [:dev, :test], runtime: false}
     ]
   end
 end
