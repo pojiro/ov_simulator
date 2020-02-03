@@ -18,31 +18,45 @@ import LiveSocket from "phoenix_live_view"
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content");
 
 let hooks = {};
-hooks.canvas = {
+hooks.canvases = {
   mounted() {
-    let canvas = this.el
-    let ctx = canvas.getContext("2d")
+    let canvas1 = document.getElementById("canvas1")
+    let canvas2 = document.getElementById("canvas2")
+    let ctx1 = canvas1.getContext("2d")
+    let ctx2 = canvas2.getContext("2d")
 
-    Object.assign(this, {canvas, ctx})
+    Object.assign(this, {canvas1, ctx1, canvas2, ctx2})
     console.log("mounted", this)
   },
   updated(){
-    let {canvas, ctx} = this
-    let particles = JSON.parse(canvas.dataset.particles)
+    let {canvas1, ctx1, canvas2, ctx2} = this
+    let particles = JSON.parse(this.el.dataset.particles)
     let L = 50
 
     let circuitRadius = 150
     let particleRadius = 10
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
-    ctx.fillStyle = "rgba(128, 0, 255, 1)"
+    ctx1.clearRect(0, 0, canvas1.width, canvas1.height)
+    ctx2.clearRect(0, 0, canvas2.width, canvas2.height)
     particles.forEach(particle => {
-      ctx.beginPath()
-      ctx.arc(
+      let color_value = Math.round(particle.velocity / 2.0 * 200)
+      // Draw Circuit
+      ctx1.fillStyle = `rgba(${color_value}, 0, ${255 - color_value}, 1)`
+      ctx1.beginPath()
+      ctx1.arc(
         particleRadius + circuitRadius + circuitRadius * Math.cos(2 * Math.PI/L * particle.position),
         particleRadius + circuitRadius + circuitRadius * Math.sin(2 * Math.PI/L * particle.position),
         particleRadius, 0, 2 * Math.PI);
-      ctx.fill();
+      ctx1.fill();
+
+      // Draw limit cycle
+      ctx2.fillStyle = `rgba(${color_value}, 0, ${255 - color_value}, 1)`
+      ctx2.beginPath()
+      ctx2.arc(
+        particle.headway / 4.0 * 320,
+        320 - particle.velocity / 2.0 * 320,
+        particleRadius, 0, 2 * Math.PI);
+      ctx2.fill();
     })
 
     console.log("updated")

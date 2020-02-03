@@ -4,13 +4,33 @@ defmodule OvSimulatorWeb.LiveMain do
   def render(assigns) do
     ~L"""
       <h1>1d - Optimal Velocity Model Simulator</h1>
-      <div>
-        <canvas
-          phx-hook="canvas"
-          data-particles=<%= Jason.encode!(@particles)%>
-          width="400px"
-          height="400px"
-        ></canvas>
+      <div class="row" phx-hook="canvases" data-particles=<%= Jason.encode!(@particles)%>>
+        <div class="column">
+          <h2>circuit</h2>
+          <canvas width="350px" height="350px" id="canvas1"></canvas>
+        </div>
+        <div class="column">
+          <h2>limit cycle</h2>
+          <canvas width="350px" height="350px" id="canvas2"></canvas>
+        </div>
+      </div>
+      <div class="row">
+        <div class="column">
+          <label for="spaceSize">space size</label>
+          <input type="number" id="spaceSize" placeholder="50">
+        </div>
+        <div class="column">
+          <label for="particleCount">particle count</label>
+          <input type="number" id="particleCount" placeholder="25">
+        </div>
+        <div class="column">
+          <label for="sensitivity">sensitivity</label>
+          <input type="number" id="sensitivity" placeholder="1.0">
+        </div>
+        <div class="column">
+          <label for="stepSize">step size</label>
+          <input type="number" id="stepSize" placeholder="0.5">
+        </div>
       </div>
       <div>
         <button phx-click="start">start</button>
@@ -26,7 +46,8 @@ defmodule OvSimulatorWeb.LiveMain do
   def setup_particle(n) do
     %{
       position: 0.0 + n * @space_length / @particle_count,
-      velocity: 0.0
+      velocity: 0.0,
+      headway: @space_length / @particle_count
     }
   end
 
@@ -62,7 +83,7 @@ defmodule OvSimulatorWeb.LiveMain do
       0..(Enum.count(particles) - 1)
       |> Enum.map(fn i ->
         %{
-          position: Enum.at(particles, i).position + Enum.at(k0, i).v * step_size * 0.5,
+          position: position(Enum.at(particles, i).position + Enum.at(k0, i).v * step_size * 0.5),
           velocity: Enum.at(particles, i).velocity + Enum.at(k0, i).a * step_size * 0.5
         }
       end)
@@ -73,7 +94,7 @@ defmodule OvSimulatorWeb.LiveMain do
       0..(Enum.count(particles) - 1)
       |> Enum.map(fn i ->
         %{
-          position: Enum.at(particles, i).position + Enum.at(k1, i).v * step_size * 0.5,
+          position: position(Enum.at(particles, i).position + Enum.at(k1, i).v * step_size * 0.5),
           velocity: Enum.at(particles, i).velocity + Enum.at(k1, i).a * step_size * 0.5
         }
       end)
@@ -84,7 +105,7 @@ defmodule OvSimulatorWeb.LiveMain do
       0..(Enum.count(particles) - 1)
       |> Enum.map(fn i ->
         %{
-          position: Enum.at(particles, i).position + Enum.at(k2, i).v * step_size,
+          position: position(Enum.at(particles, i).position + Enum.at(k2, i).v * step_size),
           velocity: Enum.at(particles, i).velocity + Enum.at(k2, i).a * step_size
         }
       end)
@@ -107,6 +128,7 @@ defmodule OvSimulatorWeb.LiveMain do
               6.0 * step_size
       }
     end)
+    |> update_headway()
   end
 
   defp integrate(current_value, step_size, fun, args \\ []) do
@@ -125,8 +147,8 @@ defmodule OvSimulatorWeb.LiveMain do
   end
 
   def handle_info(:update, %{assigns: %{particles: particles}} = socket) do
-    particles = particles |> rk4(0.1)
-    Process.send_after(self(), :update, 50)
+    particles = particles |> rk4(0.5)
+    Process.send_after(self(), :update, 100)
 
     {:noreply, assign(socket, particles: particles)}
   end
