@@ -4,7 +4,9 @@ defmodule OvSimulatorWeb.LiveMain do
   def render(assigns) do
     ~L"""
       <h1>1d - Optimal Velocity Model Simulator</h1>
-      <div class="row" phx-hook="canvases" data-particles=<%= Jason.encode!(@particles)%>>
+      <div class="row" phx-hook="canvases"
+        data-particles=<%= Jason.encode!(@particles)%>
+        data-space-size=<%= @space_size%>>
         <div class="column">
           <h2>circuit</h2>
           <canvas width="350px" height="350px" id="canvas1"></canvas>
@@ -14,46 +16,48 @@ defmodule OvSimulatorWeb.LiveMain do
           <canvas width="350px" height="350px" id="canvas2"></canvas>
         </div>
       </div>
-      <div class="row">
-        <div class="column">
-          <label for="spaceSize">space size</label>
-          <input type="number" id="spaceSize" placeholder="50">
+      <form phx-change="change_param">
+        <div class="row">
+          <div class="column">
+            <label for="spaceSize">space size</label>
+            <input type="number" id="spaceSize" name="space_size" value=<%= @space_size %> placeholder="50" disabled>
+          </div>
+          <div class="column">
+            <label for="particleCount">particle count</label>
+            <input type="number" id="particleCount" name="particle_count" value=<%= @particle_count %> placeholder="25" disabled>
+          </div>
+          <div class="column">
+            <label for="sensitivity">sensitivity</label>
+            <input type="number" id="sensitivity" name="sensitivity" step="0.01" value=<%= @sensitivity %> placeholder="1.0" disabled>
+          </div>
+          <div class="column">
+            <label for="stepSize">step size</label>
+            <input type="number" id="stepSize" name="step_size" step="0.01" value=<%= @step_size %> placeholder="0.5" disabled>
+          </div>
         </div>
-        <div class="column">
-          <label for="particleCount">particle count</label>
-          <input type="number" id="particleCount" placeholder="25">
-        </div>
-        <div class="column">
-          <label for="sensitivity">sensitivity</label>
-          <input type="number" id="sensitivity" placeholder="1.0">
-        </div>
-        <div class="column">
-          <label for="stepSize">step size</label>
-          <input type="number" id="stepSize" placeholder="0.5">
-        </div>
-      </div>
-      <div>
+      </form>
+      <!--div>
         <button phx-click="start">start</button>
         <button phx-click="stop">stop</button>
-      </div>
+      </div-->
     """
   end
 
   @particle_count 25
-  @space_length 50
+  @space_size 50
   @sensitivity 1.0
+  @step_size 0.5
 
   def setup_particle(n) do
     %{
-      position: 0.0 + n * @space_length / @particle_count,
+      position: 0.0 + n * @space_size / @particle_count,
       velocity: 0.0,
-      headway: @space_length / @particle_count
+      headway: @space_size / @particle_count
     }
   end
 
-  defp move_particle(%{position: x} = p) do
-    %{position: position(x + 1), velocity: 0.0}
-  end
+  defp calc_headway(forward_x, x) when forward_x < x, do: forward_x - x + @space_size
+  defp calc_headway(forward_x, x), do: forward_x - x
 
   def update_headway([h | t] = l) when is_list(l) do
     (t ++ [h])
@@ -63,15 +67,12 @@ defmodule OvSimulatorWeb.LiveMain do
     end)
   end
 
-  defp position(x) when x > @space_length, do: x - @space_length
+  defp position(x) when x > @space_size, do: x - @space_size
   defp position(x), do: x
 
   defp ov_func(x), do: :math.tanh(x - 2.0) + :math.tanh(2.0)
   defp calc_acceleration(p), do: @sensitivity * (ov_func(p.headway) - p.velocity)
   defp calc_velocity(p), do: p.velocity
-
-  defp calc_headway(forward_x, x) when forward_x < x, do: forward_x - x + @space_length
-  defp calc_headway(forward_x, x), do: forward_x - x
 
   def rk4(particles, step_size) do
     k0 =
@@ -131,26 +132,46 @@ defmodule OvSimulatorWeb.LiveMain do
     |> update_headway()
   end
 
-  defp integrate(current_value, step_size, fun, args \\ []) do
-    k0 = fun.(current_value)
-    k1 = fun.(current_value + k0 * step_size * 0.5)
-    k2 = fun.(current_value + k1 * step_size * 0.5)
-    k3 = fun.(current_value + k2 * step_size)
-
-    current_value + (k0 + 2.0 * k1 + 2.0 * k2 + k3) / 6.0 * step_size
-  end
-
   def mount(_params, _session, socket) do
-    particles = 1..@particle_count |> Enum.map(fn n -> setup_particle(n) end)
+    particle_count = @particle_count
+    space_size = @space_size
+    sensitivity = @sensitivity
+    step_size = @step_size
+
+    particles = 1..particle_count |> Enum.map(fn n -> setup_particle(n) end)
     Process.send_after(self(), :update, 100)
-    {:ok, assign(socket, particles: particles)}
+
+    {:ok,
+     assign(socket,
+       particles: particles,
+       space_size: space_size,
+       sensitivity: sensitivity,
+       step_size: step_size,
+       particle_count: particle_count
+     )}
   end
 
-  def handle_info(:update, %{assigns: %{particles: particles}} = socket) do
-    particles = particles |> rk4(0.5)
+  def handle_info(:update, %{assigns: %{particles: particles, step_size: step_size}} = socket) do
+    particles = particles |> rk4(step_size)
     Process.send_after(self(), :update, 100)
 
     {:noreply, assign(socket, particles: particles)}
+  end
+
+  def handle_event("change_param", params, socket) do
+    IO.inspect(params)
+    {particle_count, _} = Integer.parse(params["particle_count"])
+    {sensitivity, _} = Float.parse(params["sensitivity"])
+    {space_size, _} = Integer.parse(params["space_size"])
+    {step_size, _} = Float.parse(params["step_size"])
+
+    {:noreply,
+     assign(socket,
+       particle_count: particle_count,
+       sensitivity: sensitivity,
+       space_size: space_size,
+       step_size: step_size
+     )}
   end
 
   def handle_event("start", _params, socket) do

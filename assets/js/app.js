@@ -26,12 +26,11 @@ hooks.canvases = {
     let ctx2 = canvas2.getContext("2d")
 
     Object.assign(this, {canvas1, ctx1, canvas2, ctx2})
-    console.log("mounted", this)
   },
   updated(){
     let {canvas1, ctx1, canvas2, ctx2} = this
     let particles = JSON.parse(this.el.dataset.particles)
-    let L = 50
+    let spaceSize = Number(this.el.dataset.spaceSize)
 
     let circuitRadius = 150
     let particleRadius = 10
@@ -44,8 +43,8 @@ hooks.canvases = {
       ctx1.fillStyle = `rgba(${color_value}, 0, ${255 - color_value}, 1)`
       ctx1.beginPath()
       ctx1.arc(
-        particleRadius + circuitRadius + circuitRadius * Math.cos(2 * Math.PI/L * particle.position),
-        particleRadius + circuitRadius + circuitRadius * Math.sin(2 * Math.PI/L * particle.position),
+        particleRadius + circuitRadius + circuitRadius * Math.cos(2 * Math.PI/spaceSize * particle.position),
+        particleRadius + circuitRadius + circuitRadius * Math.sin(2 * Math.PI/spaceSize * particle.position),
         particleRadius, 0, 2 * Math.PI);
       ctx1.fill();
 
@@ -58,8 +57,6 @@ hooks.canvases = {
         particleRadius, 0, 2 * Math.PI);
       ctx2.fill();
     })
-
-    console.log("updated")
   }
 };
 
