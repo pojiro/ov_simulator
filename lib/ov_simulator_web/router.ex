@@ -17,7 +17,7 @@ defmodule OvSimulatorWeb.Router do
   scope "/", OvSimulatorWeb do
     pipe_through :browser
 
-    get "/", PageController, :index
+    live "/", LiveMain
   end
 
   # Other scopes may use custom stacks.
